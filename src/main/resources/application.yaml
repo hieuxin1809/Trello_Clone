@@ -1,0 +1,22 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb+srv://pes240724:Fvqo7yRhggncmrtC@cluster0nguyentunglam.gzmutih.mongodb.net/trello_clone?retryWrites=true&w=majority
+    redis:
+      port: 6379
+      host: localhost
+  jwt:
+    signerKey: "ODytKslsP4ccjT5fNo+UrA6umxm5zO/INSWB84GdDVndJzbs2lyRPcMaWCzCa18Z"
+    valid-duration: 3600
+    refreshable-duration: 7
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: "trunghieu18092004tt@gmail.com"
+    password: "oimi lzjt smdp rxck"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true

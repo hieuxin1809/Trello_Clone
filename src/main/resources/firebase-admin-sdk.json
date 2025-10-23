@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "trello-clone-f8c96",
+  "private_key_id": "27e81f043268af567fe00e0ad2a4ac6ead92832b",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCiPc78m+EEHUyl\nn9EI8hr7im9GIrjpWHelbqGTCcGSPBHcF8rtUVAig4lelpcDx61ZMwGUT4j/pVSP\nWOxhAWHe/qIISNWKZIsfwnjHYehEop5eoBNbJp5uSDuSY9Cz33zyi7Z+yTbGYUs9\nZkg50EZBWdPB0TPutG/lphvQfv7G66UCQEClKHc7os0a2I8qdMrr9biUjXanOhkT\n1gW7wjaNsMLkBjQ9FGaoIF6YDCi9wNxdeEBhK9Grk6aU6oo7Cmuh/icI7Nfh8vCa\njr92qBw1BOQLwbbGwCI/A59fNy6ivUHh0i9dpmdG8VE7e8xIspnp00I7s72P0OhV\ngvaHRZAxAgMBAAECggEAElWFxIog/YQKG1VaG/awEejs9jIKT2RN8QX1gFZD57Ce\nHA8cQYFE2wGeTnAaFLVF46Sd8xKh2rHmQmS8IaI0WyzPRrxkVUVTa31ghLeNtePi\nnbLdPRm6IaBMCxj4hrsktYwQTXeTlwt7oy6hzta4eb4a7fYkNj9xvbPtxLv1MqlU\nFw6uQzX+o4wvcqezRAd3BbhOGcaPiLiVg5eACWOGA1JkjHXvOyPHUie6yxcal4CN\nFLQ8iZ9W8ueSfe44yGitInUZIxVrP79IADJZCQjzbHQzmyxa3Q1oegYPZVMkCqf5\nE/50y6ZAU3RQpil7ldv3GwFe6WKwM/BpK85bsZZq2QKBgQDk5aDDuN8HuHkiHfx7\nFDL3bI/+Q3siVpDrfASQoNAie+/UhJNoFCfK38S9aamqJxKvPY1kq4+qgNAdQWaM\nJ4PE8DOyJ8/mByIymcNtPrV70Y1S6t3yIQ0rru9eD3rPlAozSAkRpkxohB3qCj77\nLyuEAg0C6QJuWxLQ97KVQqd4kwKBgQC1c7RAXbm2hyTdAtWm3a5ULr4EWwEANHNQ\ntONgMkI5cO+ZuXFs7SiH8ZgWnCv1nWp5iuPVNz0k8kOXhAW7EIC4svVDlMVXcK1+\nNhV1XAkl57tQt88G5bT7+Y7Hc3WIIShQ5oobxt7M/s+qlKV+O1lsokd1xhbzB6WC\nuQRQ9FmiqwKBgQCQi9oL/zEIxRvpyZnpd4X/7ZS48pBNzPDTZIvVcVg+jpmTUO1t\nalz+pnStUI6OHwKTm4Ews46UE6hY8TX7B/EUasOam72T+6lC3wskb9dXi6t9U0g5\nYVnZ3izW71uUvl36qGDhvmy+C8CATVwcb1tBj7H7xn18hxLI18L0sxTi9QKBgHO2\nSm91lZXJzv9F7HuSCLbUbAaZBiVcTWFdSVayFjtNQu50LNn6zwsKTSO2Ce6CqUDD\nCpGQvWRPPj1kSsdFOeEO9otXVxVw3KKM2NhTjd3nTjOmU9ahK+438g5NGdlq06vr\nqI0YIEL4B/RPAM5kCJ3XStzXKxFmgezAEfmSKYsrAoGBAMdbkvHeuMe86LcoBohZ\nYXdRhFHy22o2d1ALOH8QBrgUeOakE//s+SZXzaWy7Kb5aM3HUFhHPBhv28Ew05pq\n/pE4HjqnkWKvcOVy0oMTT4XHgAtYSxDxpoPSTYjlwoQLRmdGs5KKXJtP8LiA/gHI\nni3LKaSl5mkogV9QQgkbTDa0\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@trello-clone-f8c96.iam.gserviceaccount.com",
+  "client_id": "113017537982293226109",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40trello-clone-f8c96.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
