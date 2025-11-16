@@ -3,10 +3,13 @@ package com.example.trello.service;
 import com.example.trello.dto.request.LoginRequest;
 import com.example.trello.dto.request.LogoutRequest;
 import com.example.trello.dto.request.RefreshRequest;
+import com.example.trello.dto.request.RegisterRequest;
 import com.example.trello.dto.response.LoginResponse;
 import com.example.trello.dto.response.RefreshTokenResponse;
+import com.example.trello.dto.response.RegisterResponse;
 import com.example.trello.exception.AppException;
 import com.example.trello.exception.ErrorCode;
+import com.example.trello.mapper.UserMapper;
 import com.example.trello.model.RedisToken;
 import com.example.trello.model.User;
 import com.example.trello.repository.RedisTokenRepository;
@@ -21,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
@@ -35,6 +39,8 @@ public class AuthenticationService {
     JwtService jwtService;
     RedisTokenRepository redisTokenRepository;
     AuthenticationManager authenticationManager;
+    UserMapper userMapper;
+    PasswordEncoder passwordEncoder;
     public LoginResponse login(LoginRequest loginRequest) {
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword());
         Authentication authenticate = authenticationManager.authenticate(authenticationToken);
@@ -61,6 +67,21 @@ public class AuthenticationService {
                 .expiredTime(expiredTime.getTime() - new Date().getTime())
                 .build();
         redisTokenRepository.save(redisToken);
+    }
+    public RegisterResponse register(RegisterRequest registerRequest) {
+        if(userRepository.existsByEmail(registerRequest.getEmail())){
+            throw new AppException(ErrorCode.EMAIL_EXIST);
+        }
+        User newUser = User.builder()
+                .email(registerRequest.getEmail())
+                .password(passwordEncoder.encode(registerRequest.getPassword()))
+                .displayName(registerRequest.getDisplayName())
+                .build();
+        userRepository.save(newUser);
+        return RegisterResponse.builder()
+                .email(newUser.getEmail())
+                .displayName(newUser.getDisplayName())
+                .build();
     }
     public RefreshTokenResponse refresh(RefreshRequest request) throws ParseException, JOSEException {
         String refreshToken = request.getToken();

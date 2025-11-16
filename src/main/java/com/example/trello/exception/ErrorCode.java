@@ -21,7 +21,8 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND_OR_IS_OWNER(1014,"member not found or is owner" , HttpStatus.BAD_REQUEST),
     USER_ALREADY_ASSIGNED(1016,"user already assigned to card" , HttpStatus.BAD_REQUEST),
     USER_NOT_ASSIGNED(1017,"user not assigned to card" , HttpStatus.BAD_REQUEST),
-    UNAUTHENTICATED(1018,"Unauthenticated" , HttpStatus.UNAUTHORIZED)
+    UNAUTHENTICATED(1018,"Unauthenticated" , HttpStatus.UNAUTHORIZED),
+    INVALID_PASSWORD(1019,"old password invalid" , HttpStatus.BAD_REQUEST)
     ;
 
 

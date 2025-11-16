@@ -20,3 +20,7 @@ spring:
           auth: true
           starttls:
             enable: true
+  cloudinary:
+    cloud-name: "di44iopzn"
+    api-key: "915861916668146"
+    api-secret: "rzlka9b8lzFjaMOzDeQ141md5n0"

@@ -15,9 +15,13 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +30,7 @@ import java.util.stream.Collectors;
 public class CardService {
     CardRepository cardRepository;
     CardMapper cardMapper;
+    CloudinaryService cloudinaryService;
     ListRepository listRepository;
 
     // --- 1. CREATE ---
@@ -86,6 +91,30 @@ public class CardService {
 
         // TODO: Ghi Activity log (card_archived)
     }
+    public CardResponse addAttachment(String cardId, MultipartFile file, String uploadedBy) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new AppException(ErrorCode.CARD_NOT_FOUND));
+
+        Map<String, Object> uploadResult = cloudinaryService.uploadFile(file, "attachments");
+
+        Card.Attachment attachment = new Card.Attachment();
+        attachment.setId(UUID.randomUUID().toString());
+        attachment.setName((String) uploadResult.get("original_filename"));
+        attachment.setUrl((String) uploadResult.get("secure_url"));
+        attachment.setMimeType((String) uploadResult.get("resource_type"));
+        attachment.setSize(file.getSize());
+        attachment.setUploadedBy(uploadedBy);
+        attachment.setUploadedAt(Instant.now());
+
+        if (card.getAttachments() == null) {
+            card.setAttachments(new ArrayList<>());
+        }
+        card.getAttachments().add(attachment);
+
+        cardRepository.save(card);
+        return cardMapper.toCardResponse(card);
+    }
+
     //BỔ SUNG: Di chuyển thẻ (FR11: Kéo-Thả)
     // --- 5. MOVE (Reorder) ---
     public CardResponse moveCard(String cardId, CardMoveRequest request) {

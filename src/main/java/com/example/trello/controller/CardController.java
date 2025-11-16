@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -98,4 +99,15 @@ public class CardController {
                 .data(cardService.unassignUser(cardId, userId))
                 .build();
     }
+    @PutMapping("/{cardId}/attachments")
+    public ApiResponse<CardResponse> uploadAttachment(
+            @PathVariable String cardId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "uploadedBy", required = false) String uploadedBy
+    ) {
+        return ApiResponse.<CardResponse>builder()
+                .data(cardService.addAttachment(cardId, file, uploadedBy))
+                .build();
+    }
+
 }

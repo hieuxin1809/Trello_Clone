@@ -1,13 +1,7 @@
 package com.example.trello.controller;
 
-import com.example.trello.dto.request.LoginRequest;
-import com.example.trello.dto.request.VerifyTokenRequest;
-import com.example.trello.dto.request.LogoutRequest;
-import com.example.trello.dto.request.RefreshRequest;
-import com.example.trello.dto.response.ApiResponse;
-import com.example.trello.dto.response.LoginResponse;
-import com.example.trello.dto.response.RefreshTokenResponse;
-import com.example.trello.dto.response.VerifyTokenResponse;
+import com.example.trello.dto.request.*;
+import com.example.trello.dto.response.*;
 import com.example.trello.service.AuthenticationService;
 import com.example.trello.service.JwtService;
 import com.nimbusds.jose.JOSEException;
@@ -30,6 +24,12 @@ public class AuthenticationController {
        return ApiResponse.<LoginResponse>builder()
                .data(authenticationService.login(loginRequest))
                .build();
+    }
+    @PostMapping("/register")
+    ApiResponse<RegisterResponse> register(@RequestBody RegisterRequest request) {
+        return ApiResponse.<RegisterResponse>builder()
+                .data(authenticationService.register(request))
+                .build();
     }
     @PostMapping("/verify-token")
     ApiResponse<VerifyTokenResponse> verifyToken(@RequestBody VerifyTokenRequest request) throws ParseException, JOSEException {

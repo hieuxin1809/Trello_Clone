@@ -36,7 +36,6 @@ public class BoardController {
                 .data(boardService.getBoardById(boardId))
                 .build();
     }
-
     // GET: /boards/user/{userId}
     @GetMapping("/user/{userId}")
     public ApiResponse<List<BoardResponse>> getBoardsOfUser(@PathVariable String userId) {

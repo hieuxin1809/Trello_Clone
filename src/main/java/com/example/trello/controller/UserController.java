@@ -1,17 +1,21 @@
 package com.example.trello.controller;
 
+import com.example.trello.dto.request.ChangePasswordRequest;
 import com.example.trello.dto.request.UserCreateRequest;
 import com.example.trello.dto.request.UserUpdateRequest;
 import com.example.trello.dto.response.ApiResponse;
 import com.example.trello.dto.response.UserResponse;
+import com.example.trello.service.CloudinaryService;
 import com.example.trello.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/user")
@@ -19,6 +23,7 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserController {
     UserService userService;
+    CloudinaryService cloudinaryService;
     @PostMapping("")
     ApiResponse<UserResponse> createUser(@RequestBody UserCreateRequest userCreateRequest) {
         return ApiResponse.<UserResponse>builder()
@@ -49,7 +54,39 @@ public class UserController {
                 .data(userService.updateUser(userId, userUpdateRequest))
                 .build();
     }
+    @PutMapping("/{userId}/name")
+    public ApiResponse<UserResponse> updateUserName(
+            @PathVariable String userId,
+            @RequestParam String newName
+    ){
+        return ApiResponse.<UserResponse>builder()
+                .data(userService.updateName(userId, newName))
+                .build();
+    }
+    @PutMapping("/{userId}/password")
+    public ApiResponse<Void> changePassWord(
+            @PathVariable String userId,
+            @RequestBody ChangePasswordRequest request
+    ){
+        userService.changePassword(userId, request);
+        return ApiResponse.<Void>builder()
+                .message("change password successfully")
+                .build();
+    }
+    @PutMapping("/{userId}/avatar")
+    public ApiResponse<UserResponse> updateAvatar(
+            @PathVariable String userId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        // Upload lên Cloudinary và nhận về Map chứa các thông tin
+        Map<String, Object> uploadResult = cloudinaryService.uploadFile(file, "avatars");
 
+        // Lấy ra URL ảnh từ kết quả upload
+        String imageUrl = (String) uploadResult.get("secure_url");
+        return ApiResponse.<UserResponse>builder()
+                .data(userService.updateAvatarUrl(userId, imageUrl))
+                .build();
+    }
     // DELETE /users/{userId} -> DELETE
     @DeleteMapping("/{userId}")
     public ApiResponse<Void> deleteUser(@PathVariable String userId) {
