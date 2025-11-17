@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firebase FCM Token Receiver</title>
+</head>
+<body>
+<h1>Firebase Test Client</h1>
+<p>Mở F12 (Console) để xem FCM Token...</p>
+<p>Token của bạn:</p>
+<textarea id="fcm-token" rows="5" cols="100" readonly></textarea>
+<hr>
+<h3>Bước tiếp theo (Dùng Postman)</h3>
+<ol>
+  <li>Copy Token ở trên.</li>
+  <li>Copy một `userId` từ database.</li>
+  <li>
+    Gọi API: <br>
+    <b>POST</b> <code>http://localhost:8080/fcm/register?userId=ID_CUA_BAN&token=TOKEN_O_TREN</code>
+  </li>
+</ol>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
+
+<script>
+  // (2) DÁN CẤU HÌNH CỦA BẠN VÀO ĐÂY
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyDeUo9Bch4qAZ4zD3JfMRnS5B3VoqP9rcs",
+    authDomain: "trello-clone-f8c96.firebaseapp.com",
+    projectId: "trello-clone-f8c96",
+    storageBucket: "trello-clone-f8c96.firebasestorage.app",
+    messagingSenderId: "195173265295",
+    appId: "1:195173265295:web:3df3e16b614b8283d925fa",
+    measurementId: "G-698ZV0TBFX"
+  };
+
+  // (3) DÁN CẶP KHÓA WEB (VAPID KEY) CỦA BẠN VÀO ĐÂY
+  const vapidKey = "BBqtwwDu_c_QFjLUQH8sRhIf9rW7ar6mVLZH7wFong4pRAEu3WyLpX8CzERKcrFYmc669x9zOHIThkpYEPz7tU0";
+
+  // Khởi tạo Firebase
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
+
+  // Xin quyền nhận thông báo
+  messaging.requestPermission()
+          .then(() => {
+            console.log('Notification permission granted.');
+            // Lấy token
+            return messaging.getToken({ vapidKey: vapidKey });
+          })
+          .then((token) => {
+            if (token) {
+              console.log('FCM Token:', token);
+              document.getElementById('fcm-token').value = token;
+            } else {
+              console.log('No registration token available. Request permission to generate one.');
+            }
+          })
+          .catch((err) => {
+            console.log('An error occurred while retrieving token. ', err);
+          });
+</script>
+</body>
+</html>

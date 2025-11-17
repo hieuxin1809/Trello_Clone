@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test Client</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <style>
+        body { font-family: sans-serif; display: flex; }
+        #controls { padding: 10px; border-right: 1px solid #ccc; }
+        #output { padding: 10px; flex-grow: 1; }
+        pre { background-color: #eee; padding: 10px; word-wrap: break-word; white-space: pre-wrap; }
+        .msg-in { color: blue; }
+        .msg-out { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+<div id="controls">
+    <h3>WebSocket STOMP Test</h3>
+    <p>Endpoint: /ws</p>
+    <hr>
+    <div>
+        <label for="boardId">Board ID:</label>
+        <input type="text" id="boardId" value="NHAP_BOARD_ID_CUA_BAN">
+    </div>
+    <button id="btnConnect">Connect & Subscribe</button>
+    <button id="btnDisconnect" disabled>Disconnect</button>
+    <hr>
+    <p><b>Status:</b> <span id="status">DISCONNECTED</span></p>
+</div>
+<div id="output">
+    <h3>Messages Log:</h3>
+    <pre id="log"></pre>
+</div>
+
+<script>
+    var stompClient = null;
+    var subscription = null;
+    const log = (message, type = '') => {
+        const p = document.createElement('p');
+        p.className = type;
+        p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        document.getElementById('log').prepend(p);
+    };
+
+    // 1. KẾT NỐI VÀ ĐĂNG KÝ (SUBSCRIBE)
+    document.getElementById('btnConnect').addEventListener('click', () => {
+        const boardId = document.getElementById('boardId').value;
+        if (!boardId) {
+            log('Vui lòng nhập Board ID', 'error');
+            return;
+        }
+
+        const socket = new SockJS('/ws'); // (A) Kết nối đến Endpoint
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({},
+            (frame) => {
+                log('CONNECTED to /ws', 'msg-in');
+                document.getElementById('status').textContent = 'CONNECTED';
+                document.getElementById('btnConnect').disabled = true;
+                document.getElementById('btnDisconnect').disabled = false;
+
+                // (B) Đăng ký (Subscribe) kênh của board
+                const topic = `/topic/board/${boardId}`;
+                log(`Subscribing to: ${topic}`, 'msg-out');
+
+                subscription = stompClient.subscribe(topic, (message) => {
+                    const body = JSON.parse(message.body);
+                    log(`MESSAGE received on ${topic}:`, 'msg-in');
+                    log(JSON.stringify(body, null, 2), 'msg-in');
+                });
+            },
+            (error) => {
+                log(`Connection Error: ${error}`, 'error');
+            }
+        );
+    });
+
+    // 2. NGẮT KẾT NỐI
+    document.getElementById('btnDisconnect').addEventListener('click', () => {
+        if (subscription) {
+            subscription.unsubscribe();
+            log('Unsubscribed from topic', 'msg-out');
+        }
+        if (stompClient) {
+            stompClient.disconnect(() => {
+                log('DISCONNECTED', 'error');
+                document.getElementById('status').textContent = 'DISCONNECTED';
+                document.getElementById('btnConnect').disabled = false;
+                document.getElementById('btnDisconnect').disabled = true;
+            });
+        }
+    });
+</script>
+</body>
+</html>

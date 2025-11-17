@@ -16,6 +16,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -23,29 +28,40 @@ import org.springframework.security.web.SecurityFilterChain;
 @RequiredArgsConstructor
 public class SecurityConfig {
     // PUBLIC ENDPOINTS cho Trello: Đăng ký, Đăng nhập, Introspcet, Refresh
-    private final String[] PUBLIC_ENDPOINTS =
-            {"/users","/auth/log-in","/auth/logout","/auth/introspect","/auth/refresh", "/fcm/register"}; // Đã sửa
+    // (2) ĐỊNH NGHĨA LẠI CÁC ENDPOINT PUBLIC
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/auth/log-in",
+            "/auth/register",
+            "/auth/refresh",
+
+            // Endpoint cho Firebase Cloud Messaging (nếu có)
+            "/fcm/**",
+
+            // Endpoint để test WebSocket
+            "/test-websocket.html",
+            "/ws/**",
+
+            "/test-firebase.html",
+            "/firebase-messaging-sw.js",
+            "/favicon.ico"
+
+
+    };
 
     private final CustomJwtDecoder jwtDecoder;
     private final UserDetailServiceCustomizer userDetailsServiceCustomizer;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+        // (3) BẬT CORS LÊN TRƯỚC
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
+
         http.authorizeHttpRequests(auth -> auth
+                // (4) CHỈ CHO PHÉP PUBLIC ENDPOINTS
+                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 
-                // MỞ TẤT CẢ CÁC ENDPOINT AUTH VÀ CRUD CHO MỤC ĐÍCH TEST
-                .requestMatchers("/user/**").permitAll()
-                .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/boards/**").permitAll()
-                .requestMatchers("/lists/**").permitAll()
-                .requestMatchers("/cards/**").permitAll()
-                .requestMatchers("/comments/**").permitAll()
-                .requestMatchers("/labels/**").permitAll()
-                .requestMatchers("/notifications/**").permitAll()
-                .requestMatchers("/activities/**").permitAll()
-                .requestMatchers("/fcm/**").permitAll() // Endpoint FCM
-
-                // Các request khác (nếu có)
+                // (5) TẤT CẢ CÁC REQUEST CÒN LẠI PHẢI ĐƯỢC XÁC THỰC (CẦN TOKEN)
                 .anyRequest().authenticated()
         );
 
@@ -76,6 +92,22 @@ public class SecurityConfig {
         authenticationProvider.setPasswordEncoder(passwordEncoder());
 
         return new ProviderManager(authenticationProvider);
+    }
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        // Cho phép frontend (ví dụ: localhost:3000) gọi API
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
+
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        config.setAllowCredentials(true); // Cho phép gửi cookie/token
+        config.setMaxAge(3600L); // Thời gian cache cấu hình CORS
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config); // Áp dụng cho TẤT CẢ các đường dẫn API
+        return source;
     }
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {return new BCryptPasswordEncoder(10);}

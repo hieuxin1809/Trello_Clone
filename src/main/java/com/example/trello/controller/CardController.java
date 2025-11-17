@@ -6,11 +6,14 @@ import com.example.trello.dto.request.CardMoveRequest;
 import com.example.trello.dto.request.CardUpdateRequest;
 import com.example.trello.dto.response.ApiResponse;
 import com.example.trello.dto.response.CardResponse;
+import com.example.trello.model.User;
 import com.example.trello.service.CardService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,7 +28,11 @@ public class CardController {
 
     // POST: /cards
     @PostMapping
-    public ApiResponse<CardResponse> createCard(@RequestBody CardCreateRequest request) {
+    @PreAuthorize("@boardSecurityService.isAtLeastMember(#request.boardId, principal)")
+    public ApiResponse<CardResponse> createCard(
+            @RequestBody CardCreateRequest request,
+            @AuthenticationPrincipal User principal) {
+        request.setCreatedBy(principal.getId());
         return ApiResponse.<CardResponse>builder()
                 .data(cardService.createCard(request))
                 .build();
@@ -49,28 +56,32 @@ public class CardController {
 
     // PUT: /cards/{cardId}
     @PutMapping("/{cardId}")
+    @PreAuthorize("@boardSecurityService.isMemberOfCard(#cardId, principal)")
     public ApiResponse<CardResponse> updateCard(
             @PathVariable String cardId,
-            @RequestBody CardUpdateRequest request) {
+            @RequestBody CardUpdateRequest request,
+            @AuthenticationPrincipal User principal) {
         return ApiResponse.<CardResponse>builder()
-                .data(cardService.updateCard(cardId, request))
+                .data(cardService.updateCard(cardId, request,principal.getId()))
                 .build();
     }
 
     // DELETE: /cards/{cardId} (Archive Card)
     @DeleteMapping("/{cardId}")
-    public ApiResponse<Void> archiveCard(@PathVariable String cardId) {
-        cardService.archiveCard(cardId);
+    public ApiResponse<Void> archiveCard(@PathVariable String cardId,@AuthenticationPrincipal User user) {
+        cardService.archiveCard(cardId,user.getId());
         return ApiResponse.<Void>builder()
                 .message("Card archived successfully")
                 .build();
     }
     // PUT: /cards/{cardId}/move (FR11: Di chuyển thẻ/Kéo thả)
     @PutMapping("/{cardId}/move")
+    @PreAuthorize("@boardSecurityService.isMemberOfCard(#cardId, principal)")
     public ApiResponse<CardResponse> moveCard(
             @PathVariable String cardId,
-            @RequestBody CardMoveRequest request) {
-
+            @RequestBody CardMoveRequest request,
+            @AuthenticationPrincipal User principal) {
+        request.setMovedBy(principal.getId());
         return ApiResponse.<CardResponse>builder()
                 .data(cardService.moveCard(cardId, request))
                 .build();
@@ -79,10 +90,12 @@ public class CardController {
     // POST: /cards/{cardId}/assign (FR12: Gán người dùng)
     @PostMapping("/{cardId}/assign")
     @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("@boardSecurityService.isManagerOfCard(cardId, principal)")
     public ApiResponse<CardResponse> assignUser(
             @PathVariable String cardId,
-            @RequestBody CardAssigneeRequest request) {
-
+            @RequestBody CardAssigneeRequest request,
+            @AuthenticationPrincipal User principal) {
+        request.setAssignedBy(principal.getId());
         return ApiResponse.<CardResponse>builder()
                 .data(cardService.assignUser(cardId, request))
                 .build();
@@ -91,22 +104,25 @@ public class CardController {
     // DELETE: /cards/{cardId}/assign/{userId} (Hủy gán người dùng)
     @DeleteMapping("/{cardId}/assign/{userId}")
     @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("@boardSecurityService.isMemberOfCard(#cardId, user)")
     public ApiResponse<CardResponse> unassignUser(
             @PathVariable String cardId,
-            @PathVariable String userId) {
+            @PathVariable String userId,
+            @AuthenticationPrincipal User user) {
 
         return ApiResponse.<CardResponse>builder()
-                .data(cardService.unassignUser(cardId, userId))
+                .data(cardService.unassignUser(cardId, userId,user.getId()))
                 .build();
     }
     @PutMapping("/{cardId}/attachments")
+    @PreAuthorize("@boardSecurityService.isMemberOfCard(#cardId, principal)")
     public ApiResponse<CardResponse> uploadAttachment(
             @PathVariable String cardId,
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "uploadedBy", required = false) String uploadedBy
+            @AuthenticationPrincipal User principal
     ) {
         return ApiResponse.<CardResponse>builder()
-                .data(cardService.addAttachment(cardId, file, uploadedBy))
+                .data(cardService.addAttachment(cardId, file, principal.getId()))
                 .build();
     }
 

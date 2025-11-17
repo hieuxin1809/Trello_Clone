@@ -4,11 +4,13 @@ import com.example.trello.dto.request.LabelCreateRequest;
 import com.example.trello.dto.request.LabelUpdateRequest;
 import com.example.trello.dto.response.ApiResponse;
 import com.example.trello.dto.response.LabelResponse;
+import com.example.trello.model.User;
 import com.example.trello.service.LabelService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,17 +51,19 @@ public class LabelController {
     @PutMapping("/{labelId}")
     public ApiResponse<LabelResponse> updateLabel(
             @PathVariable String labelId,
-            @RequestBody LabelUpdateRequest request) {
+            @RequestBody LabelUpdateRequest request,
+            @AuthenticationPrincipal User user
+    ) {
         return ApiResponse.<LabelResponse>builder()
-                .data(labelService.updateLabel(labelId, request))
+                .data(labelService.updateLabel(labelId, request,user.getId()))
                 .build();
     }
 
     // DELETE: /labels/{labelId}
     @DeleteMapping("/{labelId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ApiResponse<Void> deleteLabel(@PathVariable String labelId) {
-        labelService.deleteLabel(labelId);
+    public ApiResponse<Void> deleteLabel(@PathVariable String labelId,@AuthenticationPrincipal User user) {
+        labelService.deleteLabel(labelId,user.getId());
         return ApiResponse.<Void>builder()
                 .message("Label deleted successfully")
                 .build();

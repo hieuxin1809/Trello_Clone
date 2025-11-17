@@ -39,7 +39,7 @@
 
             JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                     .subject(user.getEmail())
-                    .issuer("Booking System") // thuong se la domain
+                    .issuer("Trello clone") // thuong se la domain
                     .issueTime(new Date())
                     .expirationTime(Date.from(Instant.now().plus(30, ChronoUnit.MINUTES)))
                     .jwtID(UUID.randomUUID().toString())

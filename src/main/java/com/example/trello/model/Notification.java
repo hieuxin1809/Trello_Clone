@@ -40,6 +40,7 @@ public class Notification {
     private Instant createdAt;
 
     @Data
+    @Builder
     public static class NotificationLink {
         private String type;
         private String boardId;

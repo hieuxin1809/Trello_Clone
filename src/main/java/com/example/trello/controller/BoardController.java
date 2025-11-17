@@ -5,11 +5,14 @@ import com.example.trello.dto.request.BoardMemberRequest;
 import com.example.trello.dto.request.BoardUpdateRequest;
 import com.example.trello.dto.response.ApiResponse;
 import com.example.trello.dto.response.BoardResponse;
+import com.example.trello.model.User;
 import com.example.trello.service.BoardService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -46,27 +49,34 @@ public class BoardController {
 
     // PUT: /boards/{boardId}
     @PutMapping("/{boardId}")
+    @PreAuthorize("@boardSecurityService.isAtLeastManager(#boardId, user)")
     public ApiResponse<BoardResponse> updateBoard(
             @PathVariable String boardId,
-            @RequestBody BoardUpdateRequest request) {
+            @RequestBody BoardUpdateRequest request,
+            @AuthenticationPrincipal User user) {
         return ApiResponse.<BoardResponse>builder()
-                .data(boardService.updateBoard(boardId, request))
+                .data(boardService.updateBoard(boardId, request,user.getId()))
                 .build();
     }
 
     // DELETE: /boards/{boardId}
     @DeleteMapping("/{boardId}")
-    public ApiResponse<Void> closeBoard(@PathVariable String boardId) {
-        boardService.closeBoard(boardId);
+    @PreAuthorize("@boardSecurityService.isAtLeastManager(#boardId, user)")
+    public ApiResponse<Void> closeBoard(@PathVariable String boardId
+            ,@AuthenticationPrincipal User user) {
+        boardService.closeBoard(boardId, user.getId());
         return ApiResponse.<Void>builder()
                 .message("Board closed successfully (Soft Delete/Archive)")
                 .build();
     }
     // POST: /boards/{boardId}/members (FR7: Thêm thành viên)
     @PostMapping("/{boardId}/members")
+    @PreAuthorize("@boardSecurityService.isAtLeastManager(#boardId, principal)")
     public ApiResponse<BoardResponse> addMember(
             @PathVariable String boardId,
-            @RequestBody BoardMemberRequest request) {
+            @RequestBody BoardMemberRequest request,
+            @AuthenticationPrincipal User principal) {
+        request.setAddedBy(principal.getId());
 
         return ApiResponse.<BoardResponse>builder()
                 .data(boardService.addMember(boardId, request))
@@ -75,12 +85,14 @@ public class BoardController {
 
     // DELETE: /boards/{boardId}/members/{userId} (FR7: Xóa thành viên)
     @DeleteMapping("/{boardId}/members/{userId}")
+    @PreAuthorize("@boardSecurityService.isAtLeastManager(#boardId, currentUser)")
     @ResponseStatus(HttpStatus.NO_CONTENT) // 204 No Content
     public ApiResponse<Void> removeMember(
             @PathVariable String boardId,
-            @PathVariable String userId) {
+            @PathVariable String userId,
+            @AuthenticationPrincipal User currentUser) {
 
-        boardService.removeMember(boardId, userId);
+        boardService.removeMember(boardId, userId, currentUser.getId());
         return ApiResponse.<Void>builder()
                 .message("Member removed successfully")
                 .build();

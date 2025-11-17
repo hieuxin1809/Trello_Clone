@@ -23,6 +23,6 @@ public class FcmController {
                         .token(token)
                         .build())
         );
-        return "✅ Token saved successfully";
+        return "Token saved successfully";
     }
 }

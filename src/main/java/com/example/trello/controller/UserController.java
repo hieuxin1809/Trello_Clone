@@ -10,6 +10,7 @@ import com.example.trello.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,6 +32,7 @@ public class UserController {
                 .build();
     }
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<UserResponse>> getAllUsers() {
         return ApiResponse.<List<UserResponse>>builder()
                 .data(userService.getAllUsers())
@@ -64,6 +66,7 @@ public class UserController {
                 .build();
     }
     @PutMapping("/{userId}/password")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     public ApiResponse<Void> changePassWord(
             @PathVariable String userId,
             @RequestBody ChangePasswordRequest request
@@ -74,6 +77,7 @@ public class UserController {
                 .build();
     }
     @PutMapping("/{userId}/avatar")
+    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
     public ApiResponse<UserResponse> updateAvatar(
             @PathVariable String userId,
             @RequestParam("file") MultipartFile file

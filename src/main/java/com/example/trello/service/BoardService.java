@@ -1,23 +1,26 @@
 package com.example.trello.service;
 
-import com.example.trello.dto.request.BoardCreateRequest;
-import com.example.trello.dto.request.BoardMemberRequest;
-import com.example.trello.dto.request.BoardUpdateRequest;
+import com.example.trello.dto.request.*;
 import com.example.trello.dto.response.BoardResponse;
+import com.example.trello.dto.response.WebSocketUpdateResponse;
+import com.example.trello.enums.WebSocketUpdateType;
 import com.example.trello.exception.AppException;
 import com.example.trello.exception.ErrorCode;
 import com.example.trello.mapper.BoardMapper;
 import com.example.trello.model.Board;
+import com.example.trello.model.Notification;
 import com.example.trello.model.User;
 import com.example.trello.repository.BoardRepository;
 import com.example.trello.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +31,10 @@ public class BoardService {
     BoardMapper boardMapper;
     UserRepository userRepository;
     EmailService emailService;
+
+    ActivityService activityService;
+    NotificationService notificationService;
+    SimpMessagingTemplate messagingTemplate;
 
     // --- 1. CREATE ---
     public BoardResponse createBoard(BoardCreateRequest request) {
@@ -43,6 +50,16 @@ public class BoardService {
         board.setMembers(List.of(ownerMember));
 
         board = boardRepository.save(board);
+        User creator = userRepository.findById(request.getOwnerId())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if (creator != null) {
+            activityService.createActivity(ActivityCreateRequest.builder()
+                    .boardId(board.getId())
+                    .userId(request.getOwnerId())
+                    .action("create_board")
+                    .details(Map.of("text", String.format("%s đã tạo bảng này", creator.getDisplayName())))
+                    .build());
+        }
         return boardMapper.toBoardResponse(board);
     }
 
@@ -62,23 +79,50 @@ public class BoardService {
     }
 
     // --- 3. UPDATE ---
-    public BoardResponse updateBoard(String boardId, BoardUpdateRequest request) {
+    public BoardResponse updateBoard(String boardId, BoardUpdateRequest request,String updatedByUserId) {
         Board existingBoard = boardRepository.findById(boardId)
                 .orElseThrow(() -> new AppException(ErrorCode.BOARD_NOT_FOUND));
-
+        String oldTitle = existingBoard.getTitle();
         boardMapper.updateBoard(existingBoard, request);
 
         existingBoard = boardRepository.save(existingBoard);
+        if (request.getTitle() != null && !request.getTitle().equals(oldTitle)) {
+            User updater = userRepository.findById(updatedByUserId).orElse(null);
+            if (updater != null) {
+                String logMessage = String.format("%s đã đổi tên bảng từ '%s' thành '%s'",
+                        updater.getDisplayName(), oldTitle, existingBoard.getTitle());
+                activityService.createActivity(ActivityCreateRequest.builder()
+                        .boardId(boardId)
+                        .userId(updatedByUserId)
+                        .action("update_board")
+                        .details(Map.of("text", logMessage))
+                        .build());
+            }
+        }
+        broadcastBoardUpdate(existingBoard, WebSocketUpdateType.BOARD_UPDATED);
         return boardMapper.toBoardResponse(existingBoard);
     }
 
     // --- 4. DELETE (Close/Archive) ---
-    public void closeBoard(String boardId) {
+    public void closeBoard(String boardId,String userId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new AppException(ErrorCode.BOARD_NOT_FOUND));
 
         board.setClosed(true);
         boardRepository.save(board);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if (user != null) {
+            String logMessage = String.format("%s đã đóng bảng này", user.getDisplayName());
+            activityService.createActivity(ActivityCreateRequest.builder()
+                    .boardId(boardId)
+                    .userId(userId)
+                    .action("close_board")
+                    .details(Map.of("text", logMessage))
+                    .build());
+        }
+        // --- GỬI WEBSOCKET ---
+        broadcastBoardUpdate(board, WebSocketUpdateType.BOARD_UPDATED);
     }
     // ---Thêm thành viên (FR7) ---
     public BoardResponse addMember(String boardId, BoardMemberRequest request) {
@@ -111,6 +155,9 @@ public class BoardService {
         existingBoard.getMembers().add(newMember);
 
         Board updatedBoard = boardRepository.save(existingBoard);
+
+        User inviter = userRepository.findById(request.getAddedBy())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         String inviterDisplayName = userRepository.findById(request.getAddedBy())
                 .map(User::getDisplayName)
                 .orElse("Hệ thống"); // Fallback nếu không tìm thấy người mời
@@ -134,12 +181,45 @@ public class BoardService {
 
         // TODO: Ghi Activity Log: member_added
         // TODO: Gửi Notification cho thành viên mới
+        User newMemberUser = userRepository.findById(request.getUserId()).orElse(null);
 
+        if (inviter != null && newMemberUser != null) {
+            // --- GHI ACTIVITY LOG (MEMBER_ADDED) ---
+            String logMessage = String.format("%s đã thêm %s vào bảng này với vai trò %s",
+                    inviter.getDisplayName(),
+                    newMemberUser.getDisplayName(),
+                    request.getRole().toUpperCase()
+            );
+            activityService.createActivity(ActivityCreateRequest.builder()
+                    .boardId(boardId)
+                    .userId(request.getAddedBy())
+                    .action("add_member")
+                    .details(Map.of("text", logMessage, "addedUserId", newMemberUser.getId()))
+                    .build());
+
+            // --- GỬI NOTIFICATION CHO THÀNH VIÊN MỚI ---
+            String title = String.format("%s đã mời bạn vào một bảng", inviter.getDisplayName());
+            String message = String.format("Bảng: '%s'", existingBoard.getTitle());
+            Notification.NotificationLink link = Notification.NotificationLink.builder()
+                    .type("board")
+                    .boardId(boardId)
+                    .build();
+
+            notificationService.createNotification(NotificationCreateRequest.builder()
+                    .userId(request.getUserId()) // Người nhận
+                    .type("board_invite")
+                    .title(title)
+                    .message(message)
+                    .link(link)
+                    .triggeredBy(request.getAddedBy()) // Người mời
+                    .build());
+        }
+        broadcastBoardMemberUpdate(boardId, WebSocketUpdateType.BOARD_MEMBER_ADDED, newMember);
         return boardMapper.toBoardResponse(updatedBoard);
     }
 
     // --- BỔ SUNG: Xóa thành viên (FR7) ---
-    public void removeMember(String boardId, String userIdToRemove) {
+    public void removeMember(String boardId, String userIdToRemove,String removedByUserId) {
         Board existingBoard = boardRepository.findById(boardId)
                 .orElseThrow(() -> new AppException(ErrorCode.BOARD_NOT_FOUND));
 
@@ -157,5 +237,32 @@ public class BoardService {
         boardRepository.save(existingBoard);
 
         // TODO: Ghi Activity Log: member_removed
+        User removedUser = userRepository.findById(userIdToRemove)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if (removedUser != null) {
+            String logMessage = String.format("%s đã bị xóa khỏi bảng này", removedUser.getDisplayName());
+            activityService.createActivity(ActivityCreateRequest.builder()
+                    .boardId(boardId)
+                    .userId("SYSTEM") // Placeholder - Nên lấy từ Security Principal
+                    .action("remove_member")
+                    .details(Map.of("text", logMessage, "removedUserId", userIdToRemove))
+                    .build());
+        }
+        broadcastBoardMemberUpdate(boardId, WebSocketUpdateType.BOARD_MEMBER_REMOVED, Map.of("userId", userIdToRemove));
+    }
+    private void broadcastBoardUpdate(Board board, WebSocketUpdateType type) {
+        BoardResponse boardResponse = boardMapper.toBoardResponse(board);
+        WebSocketUpdateResponse wsResponse = WebSocketUpdateResponse.builder()
+                .type(type)
+                .payload(boardResponse)
+                .build();
+        messagingTemplate.convertAndSend("/topic/board/" + board.getId(), wsResponse);
+    }
+    private void broadcastBoardMemberUpdate(String boardId, WebSocketUpdateType type, Object payload) {
+        WebSocketUpdateResponse wsResponse = WebSocketUpdateResponse.builder()
+                .type(type)
+                .payload(payload)
+                .build();
+        messagingTemplate.convertAndSend("/topic/board/" + boardId, wsResponse);
     }
 }
